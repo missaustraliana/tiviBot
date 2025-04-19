@@ -16,16 +16,20 @@ if [ "$3" = "hours" ]; then
   DURATION=$(($2 * 3600))
 elif [ "$3" = "minutes" ]; then
   DURATION=$(($2 * 60))
+elif [ "$3" = "seconds" ]; then
+  DURATION=$(($2))
 else
   echo "Invalid unit string. Use 'hours' or 'minutes'."
   exit 1
 fi
 echo Downloading lineup
-curl -s http://10.0.0.2/lineup.json > lineup.json
+curl -s http://100.108.12.10/lineup.json > lineup.json
 GuideName=$(cat lineup.json | jq -r ".[] | select(.GuideNumber == \"$1\") | .GuideName")
 VideoCodec=$(cat lineup.json | jq -r ".[] | select(.GuideNumber == \"$1\") | .VideoCodec")
 AudioCodec=$(cat lineup.json | jq -r ".[] | select(.GuideNumber == \"$1\") | .AudioCodec")
 SupportsHD=$(cat lineup.json | jq -r ".[] | select(.GuideNumber == \"$1\") | .HD")
+UploadConfig=$(cat config.json | jq -r ".upload_server")
+User=$(cat config.json | jq -r ".user")
 URL=$(cat lineup.json | jq -r ".[] | select(.GuideNumber == \"$1\") | .URL")
 DATE=$(date +'%d-%m-%Y')
 IADATE=$(date +'%Y-%m-%d')
@@ -42,7 +46,10 @@ echo "VideoCodec: $VideoCodec"
 echo "AudioCodec: $AudioCodec"
 echo "Supports HD: $SupportsHD"
 echo "Start Time: $StartTime"
-aria2c "$URL?duration=$DURATION" --out "$1.mpeg"
+mkdir -p "$1"
+set +e
+aria2c "$URL?duration=$DURATION" --out "$1/$1.mpeg"
+set -e
 EndTime=$(date +"%s")
 #Generate identifier string and check if its available
 
@@ -55,6 +62,13 @@ if [ "$METACHECK" != "{}" ]; then
   else
   echo "Passed ID validation. Uploading."
 fi
-ia upload $ID "$1.mpeg" --metadata "title: $GuideName $DATE" --metadata "subject:tivibot" --metadata "subject:$GuideName" --metadata "date:$IADATE" --metadata "publisher:tivibot" --metadata "start-epoch:$StartTime" --metadata "end-epoch:$EndTime" --metadata "video-codec:$VideoCodec" --metadata "audio-codec:$AudioCodec" --metadata "supports-hd:$SupportsHD" --metadata "expected-duration:$DURATION" --metadata "channel-id:$1"
-rm "$1.mpeg"
+echo ia upload $ID \"$1/$1.mpeg\" --metadata \"title: $GuideName $DATE\" --metadata \"subject:tivibot\" --metadata \"subject:$GuideName\" --metadata \"date:$IADATE\" --metadata \"publisher:tivibot\" --metadata \"start-epoch:$StartTime\" --metadata \"end-epoch:$EndTime\" --metadata \"video-codec:$VideoCodec\" --metadata \"audio-codec:$AudioCodec\" --metadata \"supports-hd:$SupportsHD\" --metadata \"expected-duration:$DURATION\" --metadata \"channel-id:$1\" > $1/ia.txt
+tar cvf $1.tar $1/
+zstd --ultra $1.tar
+rm $1.tar
+rm -r $1/
+scp $1.tar.zst $UploadConfig
+ssh $User \"tmux new-session -d -s mysession \"cd /mnt/data; ~/tiviBot/upload.sh $1; exec bash\"\"
+#ia upload $ID "$1.mpeg" --metadata "title: $GuideName $DATE" --metadata "subject:tivibot" --metadata "subject:$GuideName" --metadata "date:$IADATE" --metadata "publisher:tivibot" --metadata "start-epoch:$StartTime" --metadata "end-epoch:$EndTime" --metadata "video-codec:$VideoCodec" --metadata "audio-codec:$AudioCodec" --metadata "supports-hd:$SupportsHD" --metadata "expected-duration:$DURATION" --metadata "channel-id:$1"
+#rm "$1.mpeg"
 echo "Upload complete. ID: $ID"
