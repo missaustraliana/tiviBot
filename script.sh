@@ -70,5 +70,5 @@ rm -r $1/
 scp $1.tar.zst $UploadConfig
 ssh $User "tmux new-session -d -s mysession 'cd /mnt/data && ~/tiviBot/upload.sh $1 && exec bash'"
 #ia upload $ID "$1.mpeg" --metadata "title: $GuideName $DATE" --metadata "subject:tivibot" --metadata "subject:$GuideName" --metadata "date:$IADATE" --metadata "publisher:tivibot" --metadata "start-epoch:$StartTime" --metadata "end-epoch:$EndTime" --metadata "video-codec:$VideoCodec" --metadata "audio-codec:$AudioCodec" --metadata "supports-hd:$SupportsHD" --metadata "expected-duration:$DURATION" --metadata "channel-id:$1"
-#rm "$1.mpeg"
+rm "$1.tar.zst"
 echo "Upload complete. ID: $ID"

@@ -8,3 +8,4 @@ zstd --decompress /mnt/data/$1.tar.zst
 tar xvf /mnt/data/$1.tar
 rm /mnt/data/$1.tar /mnt/data/$1.tar.zst
 cat /mnt/data/$1/ia.txt | sh
+rm -r /mnt/data/$1/
