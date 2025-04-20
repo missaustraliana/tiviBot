@@ -46,9 +46,9 @@ echo "VideoCodec: $VideoCodec"
 echo "AudioCodec: $AudioCodec"
 echo "Supports HD: $SupportsHD"
 echo "Start Time: $StartTime"
-mkdir -p "$1"
+mkdir -p "$1$StartTime"
 set +e
-aria2c "$URL?duration=$DURATION" --out "$1/$1.mpeg"
+aria2c "$URL?duration=$DURATION" --out "$1$StartTime/$1.mpeg"
 set -e
 EndTime=$(date +"%s")
 #Generate identifier string and check if its available
@@ -62,15 +62,15 @@ if [ "$METACHECK" != "{}" ]; then
   else
   echo "Passed ID validation. Uploading."
 fi
-echo ia upload $ID \"$1/$1.mpeg\" --metadata \"title: $GuideName $DATE\" --metadata \"subject:tivibot\" --metadata \"subject:$GuideName\" --metadata \"date:$IADATE\" --metadata \"publisher:tivibot\" --metadata \"start-epoch:$StartTime\" --metadata \"end-epoch:$EndTime\" --metadata \"video-codec:$VideoCodec\" --metadata \"audio-codec:$AudioCodec\" --metadata \"supports-hd:$SupportsHD\" --metadata \"expected-duration:$DURATION\" --metadata \"channel-id:$1\" > $1/ia.txt
-tar cvf $1.tar $1/
-zstd --ultra $1.tar
-rm $1.tar
-rm -r $1/
+echo ia upload $ID \"$1$StartTime/$1.mpeg\" --metadata \"title: $GuideName $DATE\" --metadata \"subject:tivibot\" --metadata \"subject:$GuideName\" --metadata \"date:$IADATE\" --metadata \"publisher:tivibot\" --metadata \"start-epoch:$StartTime\" --metadata \"end-epoch:$EndTime\" --metadata \"video-codec:$VideoCodec\" --metadata \"audio-codec:$AudioCodec\" --metadata \"supports-hd:$SupportsHD\" --metadata \"expected-duration:$DURATION\" --metadata \"channel-id:$1\" > $1$StartTime/ia.txt
+tar cvf $1$StartTime.tar $1$StartTime/
+zstd --ultra $1$StartTime.tar
+rm $1$StartTime.tar
+rm -r $1$StartTime/
 echo Uploading to $UploadConfig
-scp $1.tar.zst $UploadConfig
+scp $1$StartTime.tar.zst $UploadConfig
 echo Sending upload request..
-ssh $User "tmux new-session -d -s $StartTime$1 'cd /mnt/data && ~/tiviBot/upload.sh $1'"
+ssh $User "tmux new-session -d -s $StartTime$1 'cd /mnt/data && ~/tiviBot/upload.sh $1$StartTime'"
 #ia upload $ID "$1.mpeg" --metadata "title: $GuideName $DATE" --metadata "subject:tivibot" --metadata "subject:$GuideName" --metadata "date:$IADATE" --metadata "publisher:tivibot" --metadata "start-epoch:$StartTime" --metadata "end-epoch:$EndTime" --metadata "video-codec:$VideoCodec" --metadata "audio-codec:$AudioCodec" --metadata "supports-hd:$SupportsHD" --metadata "expected-duration:$DURATION" --metadata "channel-id:$1"
-rm "$1.tar.zst"
+rm "$1$StartTime.tar.zst"
 echo "Upload complete. ID: $ID"
